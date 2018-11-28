@@ -72,9 +72,36 @@ test('setting modules to "all" creates all variants for all modules', () => {
 
   expect(result).toEqual({
     modules: {
-      flexbox: ['responsive', 'hover', 'focus', 'group-hover'],
-      textAlign: ['responsive', 'hover', 'focus', 'group-hover'],
-      textColors: ['responsive', 'hover', 'focus', 'group-hover'],
+      flexbox: ['responsive', 'group-hover', 'hover', 'focus-within', 'focus', 'active'],
+      textAlign: ['responsive', 'group-hover', 'hover', 'focus-within', 'focus', 'active'],
+      textColors: ['responsive', 'group-hover', 'hover', 'focus-within', 'focus', 'active'],
+    },
+    options: {},
+  })
+})
+
+test('setting modules to an array of variants applies those variants to all modules', () => {
+  const userConfig = {
+    modules: ['responsive', 'focus', 'hover', 'custom-variant'],
+    options: {},
+  }
+
+  const defaultConfig = {
+    modules: {
+      flexbox: ['responsive'],
+      textAlign: ['hover'],
+      textColors: ['focus'],
+    },
+    options: {},
+  }
+
+  const result = mergeConfigWithDefaults(userConfig, defaultConfig)
+
+  expect(result).toEqual({
+    modules: {
+      flexbox: ['responsive', 'focus', 'hover', 'custom-variant'],
+      textAlign: ['responsive', 'focus', 'hover', 'custom-variant'],
+      textColors: ['responsive', 'focus', 'hover', 'custom-variant'],
     },
     options: {},
   })

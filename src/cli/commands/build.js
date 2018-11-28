@@ -22,11 +22,16 @@ export const options = [
     usage: '-c, --config <file>',
     description: 'Tailwind config file.',
   },
+  {
+    usage: '--no-autoprefixer',
+    description: "Don't add vendor prefixes using autoprefixer.",
+  },
 ]
 
 export const optionMap = {
   output: ['output', 'o'],
   config: ['config', 'c'],
+  noAutoprefixer: ['no-autoprefixer'],
 }
 
 /**
@@ -58,13 +63,14 @@ function stopWithHelp(...msgs) {
  * @param {string} inputFile
  * @param {string} configFile
  * @param {string} outputFile
+ * @param {boolean} autoprefix
  * @return {Promise}
  */
-function build(inputFile, configFile, outputFile) {
+function build(inputFile, configFile, outputFile, autoprefix) {
   const css = utils.readFile(inputFile)
 
   return new Promise((resolve, reject) => {
-    postcss([tailwind(configFile), autoprefixer])
+    postcss([tailwind(configFile)].concat(autoprefix ? [autoprefixer] : []))
       .process(css, {
         from: inputFile,
         to: outputFile,
@@ -80,10 +86,13 @@ function build(inputFile, configFile, outputFile) {
  * @param {string} inputFile
  * @param {string} configFile
  * @param {string} outputFile
+ * @param {boolean} autoprefix
  * @return {Promise}
  */
-function buildToStdout(inputFile, configFile, outputFile) {
-  return build(inputFile, configFile, outputFile).then(result => process.stdout.write(result.css))
+function buildToStdout(inputFile, configFile, outputFile, autoprefix) {
+  return build(inputFile, configFile, outputFile, autoprefix).then(result =>
+    process.stdout.write(result.css)
+  )
 }
 
 /**
@@ -92,15 +101,16 @@ function buildToStdout(inputFile, configFile, outputFile) {
  * @param {string} inputFile
  * @param {string} configFile
  * @param {string} outputFile
+ * @param {boolean} autoprefix
  * @param {int[]} startTime
  * @return {Promise}
  */
-function buildToFile(inputFile, configFile, outputFile, startTime) {
+function buildToFile(inputFile, configFile, outputFile, autoprefix, startTime) {
   utils.header()
   utils.log()
   utils.log(emoji.go, 'Building...', chalk.bold.cyan(inputFile))
 
-  return build(inputFile, configFile, outputFile).then(result => {
+  return build(inputFile, configFile, outputFile, autoprefix).then(result => {
     utils.writeFile(outputFile, result.css)
 
     const prettyTime = prettyHrtime(process.hrtime(startTime))
@@ -126,6 +136,7 @@ export function run(cliParams, cliOptions) {
     const inputFile = cliParams[0]
     const configFile = cliOptions.config && cliOptions.config[0]
     const outputFile = cliOptions.output && cliOptions.output[0]
+    const autoprefix = !cliOptions.noAutoprefixer
 
     !inputFile && stopWithHelp('CSS file is required.')
     !utils.exists(inputFile) && stop(chalk.bold.magenta(inputFile), 'does not exist.')
@@ -135,8 +146,8 @@ export function run(cliParams, cliOptions) {
       stop(chalk.bold.magenta(configFile), 'does not exist.')
 
     const buildPromise = outputFile
-      ? buildToFile(inputFile, configFile, outputFile, startTime)
-      : buildToStdout(inputFile, configFile, outputFile)
+      ? buildToFile(inputFile, configFile, outputFile, autoprefix, startTime)
+      : buildToStdout(inputFile, configFile, outputFile, autoprefix)
 
     buildPromise.then(resolve).catch(reject)
   })
